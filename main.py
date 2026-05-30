@@ -32,7 +32,14 @@ parser.add_argument(
     help="Archivo de salida"
 )
 
+parser.add_argument(
+    "--omitir-primera-fila",
+    action="store_true",
+    help="Si se especifica, pandas leerá usando header=1 (omite la primera fila)"
+)
+
 args = parser.parse_args()
+header_row = 1 if args.omitir_primera_fila else 0
 
 banco = args.banco
 ventas = args.ventas
@@ -124,8 +131,15 @@ def contiene_valor(
 
 print("Leyendo archivos...")
 
-df_banco = pd.read_excel(banco, header=1)
-df_ventas = pd.read_excel(ventas, header=1)
+df_banco = pd.read_excel(
+    banco,
+    header=header_row
+)
+
+df_ventas = pd.read_excel(
+    ventas,
+    header=header_row
+)
 
 df_banco.columns = df_banco.columns.str.strip()
 df_ventas.columns = df_ventas.columns.str.strip()

@@ -15,6 +15,7 @@ Script en Python para realizar conciliación entre movimientos bancarios y regis
 - Resaltado de coincidencias mediante colores.
 - Inclusión del valor exacto que generó el match.
 - Inclusión del score de similitud.
+- Opción para omitir la primera fila de los archivos Excel.
 
 ---
 
@@ -32,11 +33,6 @@ Se recomienda trabajar dentro de un entorno virtual (`venv`) para evitar conflic
 
 ```bash
 python -m venv venv
-```
-
-Activar:
-
-```bash
 venv\Scripts\activate
 ```
 
@@ -44,11 +40,6 @@ venv\Scripts\activate
 
 ```bash
 python3 -m venv venv
-```
-
-Activar:
-
-```bash
 source venv/bin/activate
 ```
 
@@ -80,38 +71,57 @@ pip install -r requirements.txt
 
 ## Ejecución
 
-### Sintaxis
+### Lectura normal (encabezados en la primera fila)
 
 ```bash
-python conciliacion.py \
-    --banco banco.xlsx \
-    --ventas ventas.xlsx \
-    --salida resultado.xlsx
+python conciliacion.py --banco banco.xlsx --ventas ventas.xlsx --salida resultado.xlsx
 ```
 
-### Ejemplo
+### Omitiendo la primera fila
+
+Utiliza esta opción cuando los encabezados reales se encuentren en la segunda fila del archivo Excel.
 
 ```bash
-python conciliacion.py \
-    --banco banco.xlsx \
-    --ventas ventas.xlsx \
-    --salida conciliacion_resultado.xlsx
+python conciliacion.py --banco banco.xlsx --ventas ventas.xlsx --salida resultado.xlsx --omitir-primera-fila
 ```
 
 ---
 
 ## Parámetros
 
-| Parámetro | Descripción             | Obligatorio |
-| --------- | ----------------------- | ----------- |
-| --banco   | Archivo Excel del banco | Sí          |
-| --ventas  | Archivo Excel de ventas | Sí          |
-| --salida  | Archivo Excel de salida | No          |
+| Parámetro             | Descripción                                                 | Obligatorio |
+| --------------------- | ----------------------------------------------------------- | ----------- |
+| --banco               | Archivo Excel del banco                                     | Sí          |
+| --ventas              | Archivo Excel de ventas                                     | Sí          |
+| --salida              | Archivo Excel de salida                                     | No          |
+| --omitir-primera-fila | Ignora la primera fila y utiliza la segunda como encabezado | No          |
 
 Si no se especifica `--salida`, se utilizará:
 
 ```text
 banco_resultado.xlsx
+```
+
+---
+
+## Ejemplos
+
+### Lectura estándar
+
+```bash
+python conciliacion.py --banco banco.xlsx --ventas ventas.xlsx
+```
+
+### Lectura omitiendo primera fila
+
+```bash
+python conciliacion.py --banco banco.xlsx --ventas ventas.xlsx --omitir-primera-fila
+```
+
+### Salida personalizada
+
+```bash
+python conciliacion.py --banco estado_cuenta.xlsx --ventas ventas_mayo.xlsx --salida conciliacion_mayo.xlsx --omitir-primera-fila
 ```
 
 ---
@@ -153,12 +163,12 @@ Referencia Bancaria
 
 El proceso genera un archivo Excel con nuevas columnas:
 
-| Columna             | Descripción                |
-| ------------------- | -------------------------- |
-| FOLIO_CONTROL_MATCH | Folio encontrado           |
-| TIPO_MATCH          | Tipo de coincidencia       |
-| VALOR_MATCH         | Valor que produjo el match |
-| SCORE_MATCH         | Porcentaje de similitud    |
+| Columna             | Descripción                              |
+| ------------------- | ---------------------------------------- |
+| FOLIO_CONTROL_MATCH | Folio encontrado                         |
+| TIPO_MATCH          | Tipo de coincidencia encontrada          |
+| VALOR_MATCH         | Valor exacto que produjo el match        |
+| SCORE_MATCH         | Score o porcentaje de similitud obtenido |
 
 ---
 
