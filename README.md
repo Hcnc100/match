@@ -74,7 +74,7 @@ pip install -r requirements.txt
 ### Lectura normal (encabezados en la primera fila)
 
 ```bash
-python conciliacion.py --banco banco.xlsx --ventas ventas.xlsx --salida resultado.xlsx
+python main.py --banco banco.xlsx --ventas ventas.xlsx --salida resultado.xlsx
 ```
 
 ### Omitiendo la primera fila
@@ -82,7 +82,7 @@ python conciliacion.py --banco banco.xlsx --ventas ventas.xlsx --salida resultad
 Utiliza esta opción cuando los encabezados reales se encuentren en la segunda fila del archivo Excel.
 
 ```bash
-python conciliacion.py --banco banco.xlsx --ventas ventas.xlsx --salida resultado.xlsx --omitir-primera-fila
+python main.py --banco banco.xlsx --ventas ventas.xlsx --salida resultado.xlsx --omitir-primera-fila
 ```
 
 ---
@@ -109,19 +109,19 @@ banco_resultado.xlsx
 ### Lectura estándar
 
 ```bash
-python conciliacion.py --banco banco.xlsx --ventas ventas.xlsx
+python main.py --banco banco.xlsx --ventas ventas.xlsx
 ```
 
 ### Lectura omitiendo primera fila
 
 ```bash
-python conciliacion.py --banco banco.xlsx --ventas ventas.xlsx --omitir-primera-fila
+python main.py --banco banco.xlsx --ventas ventas.xlsx --omitir-primera-fila
 ```
 
 ### Salida personalizada
 
 ```bash
-python conciliacion.py --banco estado_cuenta.xlsx --ventas ventas_mayo.xlsx --salida conciliacion_mayo.xlsx --omitir-primera-fila
+python main.py --banco estado_cuenta.xlsx --ventas ventas_mayo.xlsx --salida conciliacion_mayo.xlsx --omitir-primera-fila
 ```
 
 ---
