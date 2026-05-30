@@ -1,3 +1,4 @@
+import argparse
 import re
 
 import pandas as pd
@@ -6,12 +7,36 @@ from openpyxl.styles import PatternFill
 from rapidfuzz import fuzz
 
 # ==========================
-# Archivos
+# Argumentos
 # ==========================
 
-banco = "banco.xlsx"
-ventas = "ventas.xlsx"
-archivo_salida = "banco_resultado.xlsx"
+parser = argparse.ArgumentParser(
+    description="Conciliación Banco vs Ventas"
+)
+
+parser.add_argument(
+    "--banco",
+    required=True,
+    help="Ruta del archivo banco.xlsx"
+)
+
+parser.add_argument(
+    "--ventas",
+    required=True,
+    help="Ruta del archivo ventas.xlsx"
+)
+
+parser.add_argument(
+    "--salida",
+    default="banco_resultado.xlsx",
+    help="Archivo de salida"
+)
+
+args = parser.parse_args()
+
+banco = args.banco
+ventas = args.ventas
+archivo_salida = args.salida
 
 # ==========================
 # Columnas
