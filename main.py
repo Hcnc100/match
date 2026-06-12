@@ -3,6 +3,7 @@ from fastapi.responses import FileResponse
 import logging
 import tempfile
 import os
+from fastapi.middleware.cors import CORSMiddleware
 
 from conciliador import procesar_conciliacion
 
@@ -14,6 +15,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.post("/conciliar")
