@@ -10,6 +10,10 @@ from app.core.reconciliation import procesar_matches
 from app.core.excel_painter import pintar_excel
 from app.core.excel_writer import guardar_excel
 from app.core.summary import imprimir_resumen
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 def procesar_conciliacion(
@@ -26,6 +30,8 @@ def procesar_conciliacion(
 
     # ==========================
 
+    logger.info("Leyendo archivos")
+
     # Lectura
     df_banco, df_ventas = leer_archivos(
         banco=banco,
@@ -36,6 +42,8 @@ def procesar_conciliacion(
     # ==========================
     # Validaciones
     # ==========================
+
+    logger.info("Validando archivos")
 
     validar_archivos(
         df_banco=df_banco,
@@ -51,10 +59,10 @@ def procesar_conciliacion(
         COLUMNA_VENTAS_REFERENCIA_BANCARIA
         in df_ventas.columns
     )
-
-    print(
-        f"\nReferencia Bancaria encontrada: "
-        f"{existe_referencia_bancaria}"
+    logger.info(
+        "Validación de archivos completada. "
+        "Existe columna de referencia bancaria: %s",
+        existe_referencia_bancaria
     )
 
     
@@ -62,6 +70,8 @@ def procesar_conciliacion(
     # ==========================
     # Montos
     # ==========================
+    
+    logger.info("Convirtiendo montos a formato numérico")
 
     convertir_montos(
         df_banco=df_banco,
@@ -74,16 +84,21 @@ def procesar_conciliacion(
     # Nuevas columnas
     # ==========================
 
+    logger.info("Agregando columnas para resultados de conciliación")
 
     agregar_columnas_match(
         df_banco=df_banco
     )
+
+    logger.info("Procesando coincidencias")
 
     colores_filas = procesar_matches(
         df_banco=df_banco,
         df_ventas=df_ventas,
         existe_referencia_bancaria=existe_referencia_bancaria
     )
+
+    logger.info("Guardando archivo Excel")
 
     guardar_excel(
         df_banco=df_banco,
@@ -95,6 +110,8 @@ def procesar_conciliacion(
         df_banco=df_banco,
         colores_filas=colores_filas
     )
+
+    logger.info("Imprimiendo resumen")
 
     imprimir_resumen(
         df_banco=df_banco

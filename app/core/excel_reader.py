@@ -1,11 +1,15 @@
 import pandas as pd
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def leer_archivos(
     banco,
     ventas,
     header_row
 ):
-    print("Leyendo archivos...")
+    logger.info("Leyendo archivos...")
 
     df_banco = pd.read_excel(
         banco,
@@ -24,14 +28,14 @@ def leer_archivos(
     # Mostrar columnas
     # ==========================
 
-    print("\n=== COLUMNAS BANCO ===")
+    logger.info("=== COLUMNAS BANCO ===")
 
     for i, columna in enumerate(df_banco.columns, start=1):
-        print(f"{i}. [{columna}]")
+        logger.info(f"{i}. [{columna}]")
 
-    print("\n=== COLUMNAS VENTAS ===")
+    logger.info("=== COLUMNAS VENTAS ===")
 
     for i, columna in enumerate(df_ventas.columns, start=1):
-        print(f"{i}. [{columna}]")
+        logger.info(f"{i}. [{columna}]")
 
     return df_banco, df_ventas
