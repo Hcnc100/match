@@ -39,7 +39,7 @@ def procesar_conciliacion(
         header_row=header_row
     )
     
-    df_banco_original = df_banco.copy()
+    df_ventas_original = df_ventas.copy()
     
 
     # ==========================
@@ -95,7 +95,7 @@ def procesar_conciliacion(
 
     logger.info("Procesando coincidencias")
 
-    colores_filas = procesar_matches(
+    colores_filas_banco, colores_filas_ventas = procesar_matches(
         df_banco=df_banco,
         df_ventas=df_ventas,
         existe_referencia_bancaria=existe_referencia_bancaria
@@ -105,14 +105,15 @@ def procesar_conciliacion(
 
     guardar_excel(
         df_conciliacion=df_banco,
-        df_banco_original=df_banco_original,
+        df_ventas_original=df_ventas_original,
         salida=salida
     )
 
     pintar_excel(
         salida=salida,
         df_conciliacion=df_banco,
-        colores_filas=colores_filas
+        colores_filas_banco=colores_filas_banco,
+        colores_filas_ventas=colores_filas_ventas
     )
 
     logger.info("Imprimiendo resumen")

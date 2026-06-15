@@ -3,7 +3,7 @@ import pandas as pd
 
 def guardar_excel(
         df_conciliacion,
-        df_banco_original,
+        df_ventas_original,
         salida
 ):
     """
@@ -23,9 +23,9 @@ def guardar_excel(
             index=False
         )
 
-        df_banco_original.to_excel(
+        df_ventas_original.to_excel(
             writer,
-            sheet_name="Banco Original",
+            sheet_name="Ventas",
             index=False
         )
 

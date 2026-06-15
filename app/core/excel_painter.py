@@ -2,7 +2,6 @@ from openpyxl import load_workbook
 
 from app.constants.colors_conciliation import COLOR_AMARILLO
 from app.constants.colums_conciliation import (
-    COLUMNA_BANCO_CONCEPTO,
     COLUMNA_FOLIO_MATCH,
     COLUMNA_TIPO_MATCH,
     COLUMNA_VALOR_MATCH,
@@ -13,23 +12,18 @@ from app.constants.colums_conciliation import (
 def pintar_excel(
         salida,
         df_conciliacion,
-        colores_filas
+        colores_filas_banco,
+        colores_filas_ventas
 ):
 
     wb = load_workbook(salida)
 
     ws_conciliacion = wb["Conciliacion"]
-    ws_banco = wb["Banco Original"]
+    ws_ventas = wb["Ventas"]
 
     # ==========================
-    # Hoja conciliación
+    # Hoja Conciliacion
     # ==========================
-
-    columna_excel_concepto = (
-        list(df_conciliacion.columns)
-        .index(COLUMNA_BANCO_CONCEPTO)
-        + 1
-    )
 
     columnas_nuevas = [
         COLUMNA_FOLIO_MATCH,
@@ -43,14 +37,22 @@ def pintar_excel(
         for col in columnas_nuevas
     ]
 
-    for indice_banco, color in colores_filas.items():
+    for indice_banco, color in colores_filas_banco.items():
 
         fila_excel = indice_banco + 2
 
-        ws_conciliacion.cell(
-            row=fila_excel,
-            column=columna_excel_concepto
-        ).fill = color
+        # Pintar fila completa
+
+        for columna_excel in range(
+                1,
+                ws_conciliacion.max_column + 1
+        ):
+            ws_conciliacion.cell(
+                row=fila_excel,
+                column=columna_excel
+            ).fill = color
+
+        # Las columnas generadas siguen amarillas
 
         for columna_excel in columnas_nuevas_excel:
 
@@ -58,6 +60,8 @@ def pintar_excel(
                 row=fila_excel,
                 column=columna_excel
             ).fill = COLOR_AMARILLO
+
+    # Encabezados amarillos
 
     for columna_excel in columnas_nuevas_excel:
 
@@ -67,20 +71,55 @@ def pintar_excel(
         ).fill = COLOR_AMARILLO
 
     # ==========================
-    # Hoja banco original
+    # Hoja Ventas
     # ==========================
 
-    for indice_banco, color in colores_filas.items():
+    columna_tipo_match_ventas = (
+        ws_ventas.max_column + 1
+    )
 
-        fila_excel = indice_banco + 2
+    # Encabezado
+
+    ws_ventas.cell(
+        row=1,
+        column=columna_tipo_match_ventas
+    ).value = "TIPO_MATCH"
+
+    ws_ventas.cell(
+        row=1,
+        column=columna_tipo_match_ventas
+    ).fill = COLOR_AMARILLO
+
+    # Pintar ventas conciliadas
+
+    for indice_venta, info in colores_filas_ventas.items():
+
+        color = info["color"]
+        tipo_match = info["tipo_match"]
+
+        fila_excel = indice_venta + 2
+
+        # Pintar fila completa
 
         for columna_excel in range(
                 1,
-                ws_banco.max_column + 1
+                columna_tipo_match_ventas
         ):
-            ws_banco.cell(
+            ws_ventas.cell(
                 row=fila_excel,
                 column=columna_excel
             ).fill = color
+
+        # Escribir tipo match
+
+        ws_ventas.cell(
+            row=fila_excel,
+            column=columna_tipo_match_ventas
+        ).value = tipo_match
+
+        ws_ventas.cell(
+            row=fila_excel,
+            column=columna_tipo_match_ventas
+        ).fill = color
 
     wb.save(salida)

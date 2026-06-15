@@ -14,16 +14,22 @@ def procesar_matches(
     Modifica df_banco directamente.
 
     Retorna:
-        colores_filas
+        (
+            colores_filas_banco,
+            colores_filas_ventas
+        )
     """
 
-    colores_filas = {}
+    colores_filas_banco = {}
+    colores_filas_ventas = {}
 
     print("\nProcesando registros...")
 
     for indice_banco, fila_banco in df_banco.iterrows():
 
-        monto_banco = fila_banco[COLUMNA_BANCO_ABNONO]
+        monto_banco = fila_banco[
+            COLUMNA_BANCO_ABNONO
+        ]
 
         coincidencias = df_ventas[
             (
@@ -44,7 +50,7 @@ def procesar_matches(
                 COLUMNA_BANCO_CONCEPTO
             ]
 
-            for _, fila_venta in coincidencias.iterrows():
+            for indice_venta, fila_venta in coincidencias.iterrows():
 
                 resultado = buscar_match(
                     concepto_banco=concepto_banco,
@@ -65,6 +71,14 @@ def procesar_matches(
                     folio_control = fila_venta[
                         COLUMNA_VENTAS_FOLIO_CONTROL
                     ]
+
+                    # Marcar venta para colorear
+                    colores_filas_ventas[
+                        indice_venta
+                    ] = {
+                        "color": color,
+                        "tipo_match": tipo_match
+                    }
 
                     break
 
@@ -88,6 +102,11 @@ def procesar_matches(
             COLUMNA_SCORE_MATCH
         ] = float(score_match)
 
-        colores_filas[indice_banco] = color
+        colores_filas_banco[
+            indice_banco
+        ] = color
 
-    return colores_filas
+    return (
+        colores_filas_banco,
+        colores_filas_ventas
+    )
