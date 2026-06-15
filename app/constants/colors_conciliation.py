@@ -19,5 +19,5 @@ COLOR_ROJO = PatternFill(
 )
 COLOR_GRIS = PatternFill(
     fill_type="solid",
-    fgColor="D9D9D9"
+    fgColor="FFFFFF"
 )

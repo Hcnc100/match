@@ -38,6 +38,9 @@ def procesar_conciliacion(
         ventas=ventas,
         header_row=header_row
     )
+    
+    df_banco_original = df_banco.copy()
+    
 
     # ==========================
     # Validaciones
@@ -101,13 +104,14 @@ def procesar_conciliacion(
     logger.info("Guardando archivo Excel")
 
     guardar_excel(
-        df_banco=df_banco,
+        df_conciliacion=df_banco,
+        df_banco_original=df_banco_original,
         salida=salida
     )
 
     pintar_excel(
         salida=salida,
-        df_banco=df_banco,
+        df_conciliacion=df_banco,
         colores_filas=colores_filas
     )
 
