@@ -19,18 +19,18 @@ def validar_columnas(
     df_ventas
 ):
     columnas_banco_requeridas = [
-        columna_banco,
-        columna_banco_concepto,
-        columna_banco_cfdi,
-        columna_banco_saldo
+        COLUMNA_BANCO_ABNONO,
+        COLUMNA_BANCO_CONCEPTO,
+        COLUMNA_BANCO_CFDI,
+        COLUMNA_BANCO_SALDO
     ]
 
     columnas_ventas_requeridas = [
-        columna_ventas,
-        columna_ventas_folio_control,
-        columna_ventas_correo,
-        columna_ventas_nombre,
-        columna_ventas_razon_social
+        COLUMNA_VENTAS_MONTO,
+        COLUMNA_VENTAS_FOLIO_CONTROL,
+        COLUMNA_VENTAS_CORREO,
+        COLUMNA_VENTAS_NOMBRE,
+        COLUMNA_VENTAS_RAZON_SOCIAL
     ]
 
     faltantes_banco = [

@@ -33,7 +33,7 @@ def buscar_match(
 
     encontro, score = contiene_valor(
         concepto_banco,
-        fila_venta[columna_ventas_correo],
+        fila_venta[COLUMNA_VENTAS_CORREO],
         usar_fuzzy=True,
         umbral=80
     )
@@ -41,7 +41,7 @@ def buscar_match(
     if encontro:
         return {
             "tipo": "CORREO",
-            "valor": fila_venta[columna_ventas_correo],
+            "valor": fila_venta[COLUMNA_VENTAS_CORREO],
             "score": score,
             "color": COLOR_VERDE
         }
@@ -52,7 +52,7 @@ def buscar_match(
 
     encontro, score = contiene_valor(
         concepto_banco,
-        fila_venta[columna_ventas_nombre],
+        fila_venta[COLUMNA_VENTAS_NOMBRE],
         usar_fuzzy=True,
         umbral=90
     )
@@ -60,7 +60,7 @@ def buscar_match(
     if encontro:
         return {
             "tipo": "NOMBRE",
-            "valor": fila_venta[columna_ventas_nombre],
+            "valor": fila_venta[COLUMNA_VENTAS_NOMBRE],
             "score": score,
             "color": COLOR_AMARILLO
         }
@@ -71,7 +71,7 @@ def buscar_match(
 
     encontro, score = contiene_valor(
         concepto_banco,
-        fila_venta[columna_ventas_razon_social],
+        fila_venta[COLUMNA_VENTAS_RAZON_SOCIAL],
         usar_fuzzy=True,
         umbral=85
     )
@@ -79,7 +79,7 @@ def buscar_match(
     if encontro:
         return {
             "tipo": "RAZON_SOCIAL",
-            "valor": fila_venta[columna_ventas_razon_social],
+            "valor": fila_venta[COLUMNA_VENTAS_RAZON_SOCIAL],
             "score": score,
             "color": COLOR_AZUL
         }
@@ -92,14 +92,14 @@ def buscar_match(
 
         encontro, score = contiene_valor(
             concepto_banco,
-            fila_venta[columna_ventas_referencia_bancaria],
+            fila_venta[COLUMNA_VENTAS_REFERENCIA_BANCARIA],
             usar_fuzzy=False
         )
 
         if encontro:
             return {
                 "tipo": "REFERENCIA_BANCARIA",
-                "valor": fila_venta[columna_ventas_referencia_bancaria],
+                "valor": fila_venta[COLUMNA_VENTAS_REFERENCIA_BANCARIA],
                 "score": score,
                 "color": COLOR_ROJO
             }

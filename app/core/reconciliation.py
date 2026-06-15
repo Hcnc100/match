@@ -23,11 +23,11 @@ def procesar_matches(
 
     for indice_banco, fila_banco in df_banco.iterrows():
 
-        monto_banco = fila_banco[columna_banco]
+        monto_banco = fila_banco[COLUMNA_BANCO_ABNONO]
 
         coincidencias = df_ventas[
             (
-                df_ventas[columna_ventas]
+                df_ventas[COLUMNA_VENTAS_MONTO]
                 - monto_banco
             ).abs() < 0.01
         ]
@@ -41,7 +41,7 @@ def procesar_matches(
         if not coincidencias.empty:
 
             concepto_banco = fila_banco[
-                columna_banco_concepto
+                COLUMNA_BANCO_CONCEPTO
             ]
 
             for _, fila_venta in coincidencias.iterrows():
@@ -63,7 +63,7 @@ def procesar_matches(
                     score_match = resultado["score"]
 
                     folio_control = fila_venta[
-                        columna_ventas_folio_control
+                        COLUMNA_VENTAS_FOLIO_CONTROL
                     ]
 
                     break

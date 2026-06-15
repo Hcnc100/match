@@ -2,7 +2,7 @@ from openpyxl import load_workbook
 
 from app.constants.colors_conciliation import COLOR_AMARILLO
 from app.constants.colums_conciliation import (
-    columna_banco_concepto,
+    COLUMNA_BANCO_CONCEPTO,
     COLUMNA_FOLIO_MATCH,
     COLUMNA_TIPO_MATCH,
     COLUMNA_VALOR_MATCH,
@@ -32,7 +32,7 @@ def pintar_excel(
 
     columna_excel_concepto = (
         list(df_banco.columns)
-        .index(columna_banco_concepto)
+        .index(COLUMNA_BANCO_CONCEPTO)
         + 1
     )
 

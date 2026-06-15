@@ -8,7 +8,7 @@ def agregar_columnas_match(
 
         posicion = (
             df_banco.columns.get_loc(
-                columna_banco_cfdi
+                COLUMNA_BANCO_CFDI
             ) + 1
         )
 

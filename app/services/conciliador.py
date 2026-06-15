@@ -48,7 +48,7 @@ def procesar_conciliacion(
     )
     
     existe_referencia_bancaria = (
-        columna_ventas_referencia_bancaria
+        COLUMNA_VENTAS_REFERENCIA_BANCARIA
         in df_ventas.columns
     )
 
@@ -66,8 +66,8 @@ def procesar_conciliacion(
     convertir_montos(
         df_banco=df_banco,
         df_ventas=df_ventas,
-        columna_banco=columna_banco,
-        columna_ventas=columna_ventas
+        columna_banco=COLUMNA_BANCO_ABNONO,
+        columna_ventas=COLUMNA_VENTAS_MONTO
     )
 
     # ==========================
