@@ -1,0 +1,22 @@
+columna_banco = "Abono"
+columna_ventas = "Monto"
+columna_banco_concepto = "Concepto / Referencia"
+columna_banco_saldo = "Saldo"
+columna_banco_cfdi = "# CFDI"
+columna_ventas_folio_control = "FOLIO CONTROL"
+columna_ventas_correo = "Correo"
+columna_ventas_nombre = "Nombre"
+columna_ventas_razon_social = "Razon social"
+# Opcional
+columna_ventas_referencia_bancaria = "Referencia Bancaria"
+
+COLUMNA_FOLIO_MATCH = "FOLIO_CONTROL_MATCH"
+COLUMNA_TIPO_MATCH = "TIPO_MATCH"
+COLUMNA_VALOR_MATCH = "VALOR_MATCH"
+COLUMNA_SCORE_MATCH = "SCORE_MATCH"
+
+TIPO_MATCH_CORREO = "CORREO"
+TIPO_MATCH_NOMBRE = "NOMBRE"
+TIPO_MATCH_RAZON_SOCIAL = "RAZON_SOCIAL"
+TIPO_MATCH_REFERENCIA = "REFERENCIA_BANCARIA"
+TIPO_MATCH_SIN_MATCH = "SIN_MATCH"

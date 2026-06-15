@@ -4,8 +4,7 @@ import logging
 import tempfile
 import os
 from fastapi.middleware.cors import CORSMiddleware
-
-from conciliador import procesar_conciliacion
+from app.services.conciliador import procesar_conciliacion
 
 logging.basicConfig(
     level=logging.INFO,
