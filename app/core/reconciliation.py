@@ -1,3 +1,5 @@
+import pandas as pd
+
 from app.constants.colums_conciliation import *
 from app.constants.colors_conciliation import *
 from app.core.matcher import buscar_match
@@ -11,6 +13,11 @@ def procesar_matches(
     """
     Recorre banco y ventas buscando coincidencias.
 
+    Reglas:
+    - Mismo monto
+    - Misma fecha
+    - Correo / Nombre / Razón Social / Referencia
+
     Modifica df_banco directamente.
 
     Retorna:
@@ -19,6 +26,20 @@ def procesar_matches(
             colores_filas_ventas
         )
     """
+
+    # ==========================
+    # Normalizar fechas
+    # ==========================
+
+    df_banco[COLUMNA_BANCO_FECHA] = pd.to_datetime(
+        df_banco[COLUMNA_BANCO_FECHA],
+        errors="coerce"
+    )
+
+    df_ventas[COLUMNA_VENTAS_FECHA] = pd.to_datetime(
+        df_ventas[COLUMNA_VENTAS_FECHA],
+        errors="coerce"
+    )
 
     colores_filas_banco = {}
     colores_filas_ventas = {}
@@ -31,11 +52,8 @@ def procesar_matches(
             COLUMNA_BANCO_ABNONO
         ]
 
-        coincidencias = df_ventas[
-            (
-                df_ventas[COLUMNA_VENTAS_MONTO]
-                - monto_banco
-            ).abs() < 0.01
+        fecha_banco = fila_banco[
+            COLUMNA_BANCO_FECHA
         ]
 
         color = COLOR_GRIS
@@ -43,6 +61,64 @@ def procesar_matches(
         folio_control = ""
         valor_match = ""
         score_match = 0
+
+        # ==========================
+        # Fecha inválida
+        # ==========================
+
+        if pd.isna(fecha_banco):
+
+            df_banco.at[
+                indice_banco,
+                COLUMNA_FOLIO_MATCH
+            ] = ""
+
+            df_banco.at[
+                indice_banco,
+                COLUMNA_TIPO_MATCH
+            ] = "SIN_FECHA"
+
+            df_banco.at[
+                indice_banco,
+                COLUMNA_VALOR_MATCH
+            ] = ""
+
+            df_banco.at[
+                indice_banco,
+                COLUMNA_SCORE_MATCH
+            ] = 0
+
+            colores_filas_banco[
+                indice_banco
+            ] = COLOR_GRIS
+
+            continue
+
+        fecha_banco = fecha_banco.date()
+
+        # ==========================
+        # Coincidencias por monto y fecha
+        # ==========================
+
+        coincidencias = df_ventas[
+            (
+                (
+                    df_ventas[COLUMNA_VENTAS_MONTO]
+                    - monto_banco
+                ).abs() < 0.01
+            )
+            &
+            (
+                df_ventas[
+                    COLUMNA_VENTAS_FECHA
+                ].dt.date
+                == fecha_banco
+            )
+        ]
+
+        # ==========================
+        # Buscar match
+        # ==========================
 
         if not coincidencias.empty:
 
@@ -72,7 +148,6 @@ def procesar_matches(
                         COLUMNA_VENTAS_FOLIO_CONTROL
                     ]
 
-                    # Marcar venta para colorear
                     colores_filas_ventas[
                         indice_venta
                     ] = {
@@ -81,6 +156,10 @@ def procesar_matches(
                     }
 
                     break
+
+        # ==========================
+        # Resultado en banco
+        # ==========================
 
         df_banco.at[
             indice_banco,
