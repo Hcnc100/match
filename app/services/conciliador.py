@@ -16,6 +16,24 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def normalizar_columna_cfdi(df_banco):
+    """Acepta variantes de CFDI y la mantiene como dato opcional."""
+    columnas_por_nombre = {
+        str(columna).strip().upper(): columna
+        for columna in df_banco.columns
+    }
+
+    for alias in ALIAS_COLUMNAS_BANCO_CFDI:
+        columna_encontrada = columnas_por_nombre.get(alias.upper())
+        if columna_encontrada is not None:
+            if columna_encontrada != COLUMNA_BANCO_CFDI:
+                df_banco.rename(
+                    columns={columna_encontrada: COLUMNA_BANCO_CFDI},
+                    inplace=True
+                )
+            return
+
+
 def procesar_conciliacion(
         banco,
         ventas,
@@ -40,6 +58,7 @@ def procesar_conciliacion(
     )
     
     df_ventas_original = df_ventas.copy()
+    normalizar_columna_cfdi(df_banco)
     
 
     # ==========================

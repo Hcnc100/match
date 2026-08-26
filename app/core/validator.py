@@ -21,7 +21,6 @@ def validar_columnas(
     columnas_banco_requeridas = [
         COLUMNA_BANCO_ABNONO,
         COLUMNA_BANCO_CONCEPTO,
-        COLUMNA_BANCO_CFDI,
         COLUMNA_BANCO_SALDO
     ]
 

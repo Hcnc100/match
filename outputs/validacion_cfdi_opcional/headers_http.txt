@@ -1,0 +1,10 @@
+HTTP/1.1 200 OK
+date: Wed, 26 Aug 2026 19:00:46 GMT
+server: uvicorn
+content-type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+accept-ranges: bytes
+content-disposition: attachment; filename="resultado.xlsx"
+content-length: 530529
+last-modified: Wed, 26 Aug 2026 19:00:49 GMT
+etag: "a0764604152d1247ad1642a6a4eb5c76"
+

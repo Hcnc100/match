@@ -5,12 +5,12 @@ def agregar_columnas_match(
     df_banco
 ):
     if COLUMNA_FOLIO_MATCH not in df_banco.columns:
-
-        posicion = (
-            df_banco.columns.get_loc(
-                COLUMNA_BANCO_CFDI
-            ) + 1
+        columna_ancla = (
+            COLUMNA_BANCO_CFDI
+            if COLUMNA_BANCO_CFDI in df_banco.columns
+            else COLUMNA_BANCO_SALDO
         )
+        posicion = df_banco.columns.get_loc(columna_ancla) + 1
 
         df_banco.insert(
             posicion,
