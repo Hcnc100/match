@@ -5,6 +5,35 @@ from app.constants.colors_conciliation import *
 from app.core.matcher import buscar_match
 
 
+def normalizar_fecha_ventas(df_ventas):
+    """Construye FECHA usando las fechas disponibles por orden de prioridad."""
+    columnas_disponibles = [
+        columna
+        for columna in (
+            COLUMNA_VENTAS_FECHA,
+            *COLUMNAS_VENTAS_FECHA_ALTERNATIVAS,
+        )
+        if columna in df_ventas.columns
+    ]
+
+    if not columnas_disponibles:
+        raise ValueError(
+            "El archivo de ventas debe incluir alguna columna de fecha: "
+            f"{COLUMNA_VENTAS_FECHA}, "
+            f"{', '.join(COLUMNAS_VENTAS_FECHA_ALTERNATIVAS)}"
+        )
+
+    fechas = pd.concat(
+        [
+            pd.to_datetime(df_ventas[columna], errors="coerce")
+            for columna in columnas_disponibles
+        ],
+        axis=1
+    )
+
+    df_ventas[COLUMNA_VENTAS_FECHA] = fechas.bfill(axis=1).iloc[:, 0]
+
+
 def procesar_matches(
         df_banco,
         df_ventas,
@@ -36,10 +65,7 @@ def procesar_matches(
         errors="coerce"
     )
 
-    df_ventas[COLUMNA_VENTAS_FECHA] = pd.to_datetime(
-        df_ventas[COLUMNA_VENTAS_FECHA],
-        errors="coerce"
-    )
+    normalizar_fecha_ventas(df_ventas)
 
     colores_filas_banco = {}
     colores_filas_ventas = {}
