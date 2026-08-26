@@ -3,6 +3,8 @@ from fastapi.responses import FileResponse
 import logging
 import tempfile
 import os
+import uuid
+from zipfile import BadZipFile
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.conciliador import procesar_conciliacion
 
@@ -13,6 +15,28 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+
+def validar_carga_excel(archivo: UploadFile, contenido: bytes, etiqueta: str):
+    nombre = archivo.filename or "archivo sin nombre"
+
+    if not nombre.lower().endswith(".xlsx"):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"{etiqueta} ('{nombre}') debe ser un archivo .xlsx. "
+                "Los archivos .xls no son compatibles."
+            ),
+        )
+
+    if not contenido.startswith(b"PK\x03\x04"):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"{etiqueta} ('{nombre}') no es un archivo Excel válido "
+                "o está dañado."
+            ),
+        )
 
 app = FastAPI()
 
@@ -49,11 +73,17 @@ async def conciliar(
 
         logger.info("Guardando archivos recibidos")
 
+        banco_contenido = await banco.read()
+        ventas_contenido = await ventas.read()
+
+        validar_carga_excel(banco, banco_contenido, "Archivo Banco")
+        validar_carga_excel(ventas, ventas_contenido, "Archivo Ventas")
+
         with open(banco_path, "wb") as f:
-            f.write(await banco.read())
+            f.write(banco_contenido)
 
         with open(ventas_path, "wb") as f:
-            f.write(await ventas.read())
+            f.write(ventas_contenido)
 
         logger.info(
             "Archivos guardados. banco=%s ventas=%s",
@@ -98,17 +128,35 @@ async def conciliar(
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             filename="resultado.xlsx"
         )
-    except Exception:
+    except HTTPException:
+        raise
+    except (ValueError, KeyError, BadZipFile) as error:
+        logger.warning(
+            "Datos de conciliación inválidos. banco=%s ventas=%s error=%s",
+            banco.filename,
+            ventas.filename,
+            error,
+        )
+        raise HTTPException(
+            status_code=422,
+            detail=str(error).strip("'"),
+        ) from error
+    except Exception as error:
+        referencia = uuid.uuid4().hex[:8]
         logger.exception(
-            "Error procesando conciliación. banco=%s ventas=%s",
+            "Error procesando conciliación. referencia=%s banco=%s ventas=%s",
+            referencia,
             banco.filename,
             ventas.filename
         )
 
         raise HTTPException(
             status_code=500,
-            detail="Ocurrió un error al procesar la conciliación."
-        )
+            detail=(
+                "Ocurrió un error inesperado al procesar la conciliación. "
+                f"Referencia: {referencia}."
+            ),
+        ) from error
 
 
 @app.get("/health")
