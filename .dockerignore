@@ -1,0 +1,11 @@
+.git
+.github
+.qodo
+.venv
+venv
+__pycache__
+*.py[cod]
+*.xlsx
+outputs
+node_modules
+gha-creds-*.json

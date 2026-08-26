@@ -3,3 +3,5 @@ venv/
 *.xlsx
 __pycache__/
 node_modules/
+outputs/
+gha-creds-*.json
