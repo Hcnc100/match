@@ -70,7 +70,7 @@ jobs:
             --timeout=3600
           env_vars: |-
             ALLOWED_ORIGINS=https://web.conciliacion.ricardopajarocoatl.com
-            ALLOWED_HOSTS=api.conciliacion.ricardopajarocoatl.com,*.run.app
+            ALLOWED_HOSTS=api.conciliacion.ricardopajarocoatl.com
             RATE_LIMIT_REQUESTS=10
             RATE_LIMIT_WINDOW_SECONDS=900
             MAX_ACTIVE_JOBS=10
@@ -78,4 +78,4 @@ jobs:
             ENABLE_API_DOCS=false
 
       - name: Verify deployment
-        run: curl --fail --silent --show-error "${{ steps.deploy.outputs.url }}/health"
+        run: curl --fail --silent --show-error "https://api.conciliacion.ricardopajarocoatl.com/health"
