@@ -1,5 +1,5 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 import asyncio
 import json
 import shutil
@@ -10,8 +10,11 @@ import os
 import uuid
 from zipfile import BadZipFile
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from starlette.background import BackgroundTask
+from app.core.security import SlidingWindowRateLimiter, client_ip, csv_env
 from app.services.conciliador import procesar_conciliacion
-from app.services.job_manager import job_manager
+from app.services.job_manager import JobCapacityExceeded, job_manager
 
 
 logging.basicConfig(
@@ -75,15 +78,47 @@ async def guardar_upload(archivo: UploadFile, destino: str, etiqueta: str):
         )
 
 
-app = FastAPI()
+app = FastAPI(
+    docs_url=None if os.getenv("ENABLE_API_DOCS", "false").lower() != "true" else "/docs",
+    redoc_url=None,
+)
+
+allowed_origins = csv_env(
+    "ALLOWED_ORIGINS",
+    "https://web.conciliacion.ricardopajarocoatl.com,http://localhost:4200",
+)
+allowed_hosts = csv_env(
+    "ALLOWED_HOSTS",
+    "api.conciliacion.ricardopajarocoatl.com,localhost,127.0.0.1,testserver",
+)
+
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=allowed_hosts)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Accept", "Content-Type"],
 )
+
+rate_limiter = SlidingWindowRateLimiter(
+    requests=int(os.getenv("RATE_LIMIT_REQUESTS", "10")),
+    window_seconds=int(os.getenv("RATE_LIMIT_WINDOW_SECONDS", "900")),
+)
+
+
+@app.middleware("http")
+async def limitar_creacion_de_conciliaciones(request, call_next):
+    if request.method == "POST" and request.url.path in ("/conciliar", "/conciliaciones"):
+        allowed, retry_after = rate_limiter.check(client_ip(request))
+        if not allowed:
+            return JSONResponse(
+                status_code=429,
+                content={"detail": "Demasiadas conciliaciones. Intenta de nuevo más tarde."},
+                headers={"Retry-After": str(retry_after)},
+            )
+    return await call_next(request)
 
 
 @app.post("/conciliar")
@@ -110,17 +145,8 @@ async def conciliar(
 
         logger.info("Guardando archivos recibidos")
 
-        banco_contenido = await banco.read()
-        ventas_contenido = await ventas.read()
-
-        validar_carga_excel(banco, banco_contenido, "Archivo Banco")
-        validar_carga_excel(ventas, ventas_contenido, "Archivo Ventas")
-
-        with open(banco_path, "wb") as f:
-            f.write(banco_contenido)
-
-        with open(ventas_path, "wb") as f:
-            f.write(ventas_contenido)
+        await guardar_upload(banco, banco_path, "Archivo Banco")
+        await guardar_upload(ventas, ventas_path, "Archivo Ventas")
 
         logger.info(
             "Archivos guardados. banco=%s ventas=%s",
@@ -163,11 +189,16 @@ async def conciliar(
         return FileResponse(
             salida_path,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            filename="resultado.xlsx"
+            filename="resultado.xlsx",
+            background=BackgroundTask(shutil.rmtree, tmp, ignore_errors=True),
         )
     except HTTPException:
+        if "tmp" in locals():
+            shutil.rmtree(tmp, ignore_errors=True)
         raise
     except (ValueError, KeyError, BadZipFile) as error:
+        if "tmp" in locals():
+            shutil.rmtree(tmp, ignore_errors=True)
         logger.warning(
             "Datos de conciliación inválidos. banco=%s ventas=%s error=%s",
             banco.filename,
@@ -179,6 +210,8 @@ async def conciliar(
             detail=str(error).strip("'"),
         ) from error
     except Exception as error:
+        if "tmp" in locals():
+            shutil.rmtree(tmp, ignore_errors=True)
         referencia = uuid.uuid4().hex[:8]
         logger.exception(
             "Error procesando conciliación. referencia=%s banco=%s ventas=%s",
@@ -208,12 +241,15 @@ async def crear_conciliacion(
     try:
         await guardar_upload(banco, banco_path, "Archivo Banco")
         await guardar_upload(ventas, ventas_path, "Archivo Ventas")
-        return job_manager.create(
-            directory=tmp,
-            banco_path=banco_path,
-            ventas_path=ventas_path,
-            omitir_primera_fila=omitir_primera_fila,
-        )
+        try:
+            return job_manager.create(
+                directory=tmp,
+                banco_path=banco_path,
+                ventas_path=ventas_path,
+                omitir_primera_fila=omitir_primera_fila,
+            )
+        except JobCapacityExceeded as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
     except Exception:
         shutil.rmtree(tmp, ignore_errors=True)
         raise

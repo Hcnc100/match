@@ -15,6 +15,10 @@ from app.services.conciliador import procesar_conciliacion
 logger = logging.getLogger(__name__)
 
 
+class JobCapacityExceeded(Exception):
+    pass
+
+
 @dataclass
 class ConciliationJob:
     id: str
@@ -45,7 +49,7 @@ class ConciliationJob:
 
 
 class JobManager:
-    def __init__(self, max_workers=2, ttl_seconds=3600):
+    def __init__(self, max_workers=2, ttl_seconds=3600, max_active_jobs=10):
         self._jobs = {}
         self._lock = threading.RLock()
         self._executor = ThreadPoolExecutor(
@@ -53,6 +57,7 @@ class JobManager:
             thread_name_prefix="conciliacion",
         )
         self._ttl_seconds = ttl_seconds
+        self._max_active_jobs = max_active_jobs
 
     def create(self, directory, banco_path, ventas_path, omitir_primera_fila):
         self.cleanup_expired()
@@ -66,6 +71,11 @@ class JobManager:
             omitir_primera_fila=omitir_primera_fila,
         )
         with self._lock:
+            active_jobs = sum(
+                item.status in ("queued", "running") for item in self._jobs.values()
+            )
+            if active_jobs >= self._max_active_jobs:
+                raise JobCapacityExceeded("El servidor ya tiene demasiadas conciliaciones activas.")
             self._jobs[job_id] = job
         self._executor.submit(self._run, job_id)
         return self.snapshot(job_id)
@@ -148,4 +158,8 @@ class JobManager:
             shutil.rmtree(directory, ignore_errors=True)
 
 
-job_manager = JobManager()
+job_manager = JobManager(
+    max_workers=int(os.getenv("MAX_JOB_WORKERS", "2")),
+    ttl_seconds=int(os.getenv("JOB_TTL_SECONDS", "3600")),
+    max_active_jobs=int(os.getenv("MAX_ACTIVE_JOBS", "10")),
+)

@@ -102,6 +102,29 @@ almacén compartido y persistente.
 
 ---
 
+## Seguridad del API
+
+La configuración predeterminada permite solicitudes del navegador únicamente desde
+`https://web.conciliacion.ricardopajarocoatl.com` y desde Angular local. También
+valida el encabezado `Host`, limita cada archivo a 50 MB, limita la creación de
+conciliaciones por IP y evita una cola de trabajos sin límite.
+
+| Variable | Valor predeterminado | Descripción |
+| --- | --- | --- |
+| `ALLOWED_ORIGINS` | dominio web y `localhost:4200` | Orígenes CORS separados por coma |
+| `ALLOWED_HOSTS` | dominio API, localhost y testserver | Hosts aceptados separados por coma |
+| `RATE_LIMIT_REQUESTS` | `10` | Creaciones permitidas por ventana e IP |
+| `RATE_LIMIT_WINDOW_SECONDS` | `900` | Duración de la ventana (15 minutos) |
+| `MAX_ACTIVE_JOBS` | `10` | Trabajos en cola o ejecución permitidos |
+| `MAX_JOB_WORKERS` | `2` | Conciliaciones procesadas simultáneamente |
+| `TRUST_PROXY_HEADERS` | `false` | Usa `X-Forwarded-For`; activar solo detrás de un proxy confiable |
+| `ENABLE_API_DOCS` | `false` | Expone `/docs` únicamente si vale `true` |
+
+CORS evita que otros sitios consuman el API desde un navegador, pero no autentica
+clientes. Una clave incluida en Angular sería pública. Para protección fuerte se
+recomienda añadir en el proxy o proveedor de hosting un WAF/rate limit global y un
+reto como Cloudflare Turnstile o Firebase App Check.
+
 ## Parámetros
 
 | Parámetro             | Descripción                                                 | Obligatorio |
