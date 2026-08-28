@@ -1,5 +1,9 @@
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
+import asyncio
+import json
+import shutil
+import time
 import logging
 import tempfile
 import os
@@ -7,6 +11,7 @@ import uuid
 from zipfile import BadZipFile
 from fastapi.middleware.cors import CORSMiddleware
 from app.services.conciliador import procesar_conciliacion
+from app.services.job_manager import job_manager
 
 
 logging.basicConfig(
@@ -15,6 +20,8 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 
 
 def validar_carga_excel(archivo: UploadFile, contenido: bytes, etiqueta: str):
@@ -37,6 +44,36 @@ def validar_carga_excel(archivo: UploadFile, contenido: bytes, etiqueta: str):
                 "o está dañado."
             ),
         )
+
+
+async def guardar_upload(archivo: UploadFile, destino: str, etiqueta: str):
+    nombre = archivo.filename or "archivo sin nombre"
+    if not nombre.lower().endswith(".xlsx"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"{etiqueta} ('{nombre}') debe ser un archivo .xlsx.",
+        )
+
+    total = 0
+    firma = b""
+    with open(destino, "wb") as salida:
+        while bloque := await archivo.read(1024 * 1024):
+            if not firma:
+                firma = bloque[:4]
+            total += len(bloque)
+            if total > MAX_UPLOAD_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"{etiqueta} supera el límite de 50 MB.",
+                )
+            salida.write(bloque)
+
+    if firma != b"PK\x03\x04":
+        raise HTTPException(
+            status_code=400,
+            detail=f"{etiqueta} ('{nombre}') no es un archivo Excel válido o está dañado.",
+        )
+
 
 app = FastAPI()
 
@@ -159,6 +196,88 @@ async def conciliar(
         ) from error
 
 
+@app.post("/conciliaciones", status_code=202)
+async def crear_conciliacion(
+    banco: UploadFile = File(...),
+    ventas: UploadFile = File(...),
+    omitir_primera_fila: bool = Form(True),
+):
+    tmp = tempfile.mkdtemp(prefix="conciliacion-")
+    banco_path = os.path.join(tmp, "banco.xlsx")
+    ventas_path = os.path.join(tmp, "ventas.xlsx")
+    try:
+        await guardar_upload(banco, banco_path, "Archivo Banco")
+        await guardar_upload(ventas, ventas_path, "Archivo Ventas")
+        return job_manager.create(
+            directory=tmp,
+            banco_path=banco_path,
+            ventas_path=ventas_path,
+            omitir_primera_fila=omitir_primera_fila,
+        )
+    except Exception:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise
+
+
+@app.get("/conciliaciones/{job_id}")
+def obtener_conciliacion(job_id: str):
+    job = job_manager.snapshot(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Conciliación no encontrada.")
+    return job
+
+
+@app.get("/conciliaciones/{job_id}/eventos")
+async def eventos_conciliacion(job_id: str):
+    if not job_manager.get(job_id):
+        raise HTTPException(status_code=404, detail="Conciliación no encontrada.")
+
+    async def generar_eventos():
+        ultima_secuencia = -1
+        ultimo_heartbeat = time.monotonic()
+        while True:
+            estado = job_manager.snapshot(job_id)
+            if not estado:
+                return
+            if estado["sequence"] != ultima_secuencia:
+                ultima_secuencia = estado["sequence"]
+                yield (
+                    f"id: {ultima_secuencia}\n"
+                    "event: progreso\n"
+                    f"data: {json.dumps(estado, ensure_ascii=False)}\n\n"
+                )
+                ultimo_heartbeat = time.monotonic()
+            elif time.monotonic() - ultimo_heartbeat >= 15:
+                yield ": keep-alive\n\n"
+                ultimo_heartbeat = time.monotonic()
+            if estado["status"] in ("completed", "failed"):
+                return
+            await asyncio.sleep(0.25)
+
+    return StreamingResponse(
+        generar_eventos(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+        },
+    )
+
+
+@app.get("/conciliaciones/{job_id}/resultado")
+def descargar_resultado(job_id: str):
+    job = job_manager.get(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Conciliación no encontrada.")
+    if job.status == "failed":
+        raise HTTPException(status_code=422, detail=job.error)
+    if job.status != "completed" or not os.path.exists(job.output_path):
+        raise HTTPException(status_code=409, detail="La conciliación todavía no está lista.")
+    return FileResponse(
+        job.output_path,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        filename="resultado.xlsx",
+    )
 @app.get("/health")
 def health():
     logger.info("Health check")

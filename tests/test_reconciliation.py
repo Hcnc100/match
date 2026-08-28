@@ -57,6 +57,28 @@ class ReconciliationTests(unittest.TestCase):
         )
         self.assertEqual(banco.at[0, COLUMNA_SCORE_MATCH], 100.0)
 
+    def test_progress_is_reported_during_matching(self):
+        banco = pd.DataFrame([{
+            "Día": "2026-08-11",
+            "Concepto / Referencia": "SIN COINCIDENCIA",
+            "Abono": 100.0,
+            "Saldo": 1000.0,
+        }])
+        ventas = pd.DataFrame([{
+            "FECHA": "2026-08-11",
+            "Monto": 200.0,
+            "Correo": "persona@example.com",
+            "Nombre": "Persona",
+            "Razon social": "Empresa",
+            "FOLIO CONTROL": "ABC",
+        }])
+        agregar_columnas_match(banco)
+        progress = []
+
+        procesar_matches(banco, ventas, False, progreso=progress.append)
+
+        self.assertEqual(progress[-1], 100)
+
 
 if __name__ == "__main__":
     unittest.main()

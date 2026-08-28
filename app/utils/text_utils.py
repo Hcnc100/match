@@ -31,11 +31,16 @@ def contiene_valor(
     concepto,
     valor,
     usar_fuzzy=False,
-    umbral=90
+    umbral=90,
+    valores_normalizados=False,
 ):
 
-    concepto_normalizado = normalizar(concepto)
-    valor_normalizado = normalizar(valor)
+    if valores_normalizados:
+        concepto_normalizado = concepto
+        valor_normalizado = valor
+    else:
+        concepto_normalizado = normalizar(concepto)
+        valor_normalizado = normalizar(valor)
 
     if not valor_normalizado:
         return False, 0

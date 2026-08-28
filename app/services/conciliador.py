@@ -7,7 +7,6 @@ from app.core.validator import validar_archivos, validar_columnas
 from app.core.convert_numbers import convertir_montos
 from app.core.match_columns import agregar_columnas_match
 from app.core.reconciliation import procesar_matches
-from app.core.excel_painter import pintar_excel
 from app.core.excel_writer import guardar_excel
 from app.core.summary import imprimir_resumen
 import logging
@@ -38,7 +37,8 @@ def procesar_conciliacion(
         banco,
         ventas,
         salida,
-        omitir_primera_fila=False
+        omitir_primera_fila=False,
+        progreso=None,
 ):
     # ==========================
     # Columnas
@@ -49,6 +49,8 @@ def procesar_conciliacion(
     # ==========================
 
     logger.info("Leyendo archivos")
+    if progreso:
+        progreso(10, "leyendo_archivos", "Leyendo los archivos Excel")
 
     # Lectura
     df_banco, df_ventas = leer_archivos(
@@ -66,6 +68,8 @@ def procesar_conciliacion(
     # ==========================
 
     logger.info("Validando archivos")
+    if progreso:
+        progreso(25, "validando", "Validando estructura y columnas")
 
     validar_archivos(
         df_banco=df_banco,
@@ -114,26 +118,37 @@ def procesar_conciliacion(
 
     logger.info("Procesando coincidencias")
 
+    if progreso:
+        progreso(35, "conciliando", "Buscando coincidencias")
+
     colores_filas_banco, colores_filas_ventas = procesar_matches(
         df_banco=df_banco,
         df_ventas=df_ventas,
-        existe_referencia_bancaria=existe_referencia_bancaria
+        existe_referencia_bancaria=existe_referencia_bancaria,
+        progreso=(
+            lambda porcentaje: progreso(
+                35 + int(porcentaje * 0.4),
+                "conciliando",
+                f"Comparando movimientos ({porcentaje}%)",
+            )
+            if progreso else None
+        ),
     )
 
     logger.info("Guardando archivo Excel")
+    if progreso:
+        progreso(80, "generando_excel", "Generando el archivo de resultados")
 
     guardar_excel(
         df_conciliacion=df_banco,
         df_ventas_original=df_ventas_original,
-        salida=salida
+        salida=salida,
+        colores_filas_banco=colores_filas_banco,
+        colores_filas_ventas=colores_filas_ventas,
     )
 
-    pintar_excel(
-        salida=salida,
-        df_conciliacion=df_banco,
-        colores_filas_banco=colores_filas_banco,
-        colores_filas_ventas=colores_filas_ventas
-    )
+    if progreso:
+        progreso(98, "finalizando", "Preparando la descarga")
 
     logger.info("Imprimiendo resumen")
 

@@ -6,7 +6,9 @@ from app.constants.colors_conciliation import *
 def buscar_match(
         concepto_banco,
         fila_venta,
-        existe_referencia_bancaria
+        existe_referencia_bancaria,
+        valores_normalizados=False,
+        fila_venta_normalizada=None,
 ):
     """
     Busca coincidencia en el siguiente orden:
@@ -31,11 +33,18 @@ def buscar_match(
     # CORREO
     # ==========================
 
+    fila_comparacion = (
+        fila_venta_normalizada
+        if fila_venta_normalizada is not None
+        else fila_venta
+    )
+
     encontro, score = contiene_valor(
         concepto_banco,
-        fila_venta[COLUMNA_VENTAS_CORREO],
+        fila_comparacion[COLUMNA_VENTAS_CORREO],
         usar_fuzzy=True,
-        umbral=80
+        umbral=80,
+        valores_normalizados=valores_normalizados,
     )
 
     if encontro:
@@ -52,9 +61,10 @@ def buscar_match(
 
     encontro, score = contiene_valor(
         concepto_banco,
-        fila_venta[COLUMNA_VENTAS_NOMBRE],
+        fila_comparacion[COLUMNA_VENTAS_NOMBRE],
         usar_fuzzy=True,
-        umbral=90
+        umbral=90,
+        valores_normalizados=valores_normalizados,
     )
 
     if encontro:
@@ -71,9 +81,10 @@ def buscar_match(
 
     encontro, score = contiene_valor(
         concepto_banco,
-        fila_venta[COLUMNA_VENTAS_RAZON_SOCIAL],
+        fila_comparacion[COLUMNA_VENTAS_RAZON_SOCIAL],
         usar_fuzzy=True,
-        umbral=85
+        umbral=85,
+        valores_normalizados=valores_normalizados,
     )
 
     if encontro:
@@ -92,8 +103,9 @@ def buscar_match(
 
         encontro, score = contiene_valor(
             concepto_banco,
-            fila_venta[COLUMNA_VENTAS_REFERENCIA_BANCARIA],
-            usar_fuzzy=False
+            fila_comparacion[COLUMNA_VENTAS_REFERENCIA_BANCARIA],
+            usar_fuzzy=False,
+            valores_normalizados=valores_normalizados,
         )
 
         if encontro:

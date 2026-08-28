@@ -3,6 +3,7 @@ import pandas as pd
 from app.constants.colums_conciliation import *
 from app.constants.colors_conciliation import *
 from app.core.matcher import buscar_match
+from app.utils.text_utils import normalizar
 
 
 def normalizar_fecha_ventas(df_ventas):
@@ -37,7 +38,8 @@ def normalizar_fecha_ventas(df_ventas):
 def procesar_matches(
         df_banco,
         df_ventas,
-        existe_referencia_bancaria
+        existe_referencia_bancaria,
+        progreso=None,
 ):
     """
     Recorre banco y ventas buscando coincidencias.
@@ -67,12 +69,42 @@ def procesar_matches(
 
     normalizar_fecha_ventas(df_ventas)
 
+    # Indexar una sola vez evita volver a filtrar todas las ventas por cada
+    # movimiento bancario. Los centavos enteros también eliminan comparaciones
+    # ambiguas entre números de punto flotante.
+    ventas_por_fecha_monto = {}
+    columnas_texto = [
+        COLUMNA_VENTAS_CORREO,
+        COLUMNA_VENTAS_NOMBRE,
+        COLUMNA_VENTAS_RAZON_SOCIAL,
+    ]
+    if existe_referencia_bancaria:
+        columnas_texto.append(COLUMNA_VENTAS_REFERENCIA_BANCARIA)
+
+    for indice_venta, fila_venta in df_ventas.iterrows():
+        fecha_venta = fila_venta[COLUMNA_VENTAS_FECHA]
+        monto_venta = fila_venta[COLUMNA_VENTAS_MONTO]
+        if pd.isna(fecha_venta) or pd.isna(monto_venta):
+            continue
+
+        fila_normalizada = fila_venta.copy()
+        for columna in columnas_texto:
+            fila_normalizada[columna] = normalizar(fila_venta[columna])
+
+        clave = (fecha_venta.date(), int(round(float(monto_venta) * 100)))
+        ventas_por_fecha_monto.setdefault(clave, []).append(
+            (indice_venta, fila_venta, fila_normalizada)
+        )
+
     colores_filas_banco = {}
     colores_filas_ventas = {}
 
     print("\nProcesando registros...")
 
-    for indice_banco, fila_banco in df_banco.iterrows():
+    total_banco = len(df_banco)
+    ultimo_porcentaje = -1
+
+    for posicion, (indice_banco, fila_banco) in enumerate(df_banco.iterrows()):
 
         monto_banco = fila_banco[
             COLUMNA_BANCO_ABNONO
@@ -126,38 +158,28 @@ def procesar_matches(
         # Coincidencias por monto y fecha
         # ==========================
 
-        coincidencias = df_ventas[
-            (
-                (
-                    df_ventas[COLUMNA_VENTAS_MONTO]
-                    - monto_banco
-                ).abs() < 0.01
-            )
-            &
-            (
-                df_ventas[
-                    COLUMNA_VENTAS_FECHA
-                ].dt.date
-                == fecha_banco
-            )
-        ]
+        if pd.isna(monto_banco):
+            coincidencias = []
+        else:
+            clave = (fecha_banco, int(round(float(monto_banco) * 100)))
+            coincidencias = ventas_por_fecha_monto.get(clave, [])
 
         # ==========================
         # Buscar match
         # ==========================
 
-        if not coincidencias.empty:
+        if coincidencias:
 
-            concepto_banco = fila_banco[
-                COLUMNA_BANCO_CONCEPTO
-            ]
+            concepto_banco = normalizar(fila_banco[COLUMNA_BANCO_CONCEPTO])
 
-            for indice_venta, fila_venta in coincidencias.iterrows():
+            for indice_venta, fila_venta, fila_normalizada in coincidencias:
 
                 resultado = buscar_match(
                     concepto_banco=concepto_banco,
                     fila_venta=fila_venta,
-                    existe_referencia_bancaria=existe_referencia_bancaria
+                    existe_referencia_bancaria=existe_referencia_bancaria,
+                    valores_normalizados=True,
+                    fila_venta_normalizada=fila_normalizada,
                 )
 
                 if resultado:
@@ -210,6 +232,12 @@ def procesar_matches(
         colores_filas_banco[
             indice_banco
         ] = color
+
+        if progreso and total_banco:
+            porcentaje = int(((posicion + 1) / total_banco) * 100)
+            if porcentaje != ultimo_porcentaje:
+                progreso(porcentaje)
+                ultimo_porcentaje = porcentaje
 
     return (
         colores_filas_banco,

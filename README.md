@@ -85,6 +85,21 @@ Utiliza esta opción cuando los encabezados reales se encuentren en la segunda f
 python main.py --banco banco.xlsx --ventas ventas.xlsx --salida resultado.xlsx --omitir-primera-fila
 ```
 
+## API con progreso
+
+El endpoint original `POST /conciliar` se mantiene para clientes existentes.
+Los clientes nuevos pueden ejecutar la conciliación como un trabajo asíncrono:
+
+1. `POST /conciliaciones` crea el trabajo y devuelve `202` con su identificador.
+2. `GET /conciliaciones/{id}/eventos` publica porcentaje y etapa mediante SSE.
+3. `GET /conciliaciones/{id}` permite consultar el estado mediante polling.
+4. `GET /conciliaciones/{id}/resultado` descarga el Excel cuando termina.
+
+El registro de trabajos y los resultados expiran después de una hora. La
+implementación actual mantiene ese registro en memoria y está orientada a un
+despliegue de una instancia; para escalado horizontal debe sustituirse por un
+almacén compartido y persistente.
+
 ---
 
 ## Parámetros
