@@ -61,6 +61,21 @@ jobs:
           service: ${{ env.CLOUD_RUN_SERVICE }}
           region: ${{ env.REGION }}
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.ARTIFACT_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          flags: >-
+            --min-instances=0
+            --max-instances=1
+            --cpu=1
+            --memory=1Gi
+            --concurrency=20
+            --timeout=3600
+          env_vars: |-
+            ALLOWED_ORIGINS=https://web.conciliacion.ricardopajarocoatl.com
+            ALLOWED_HOSTS=api.conciliacion.ricardopajarocoatl.com,*.run.app
+            RATE_LIMIT_REQUESTS=10
+            RATE_LIMIT_WINDOW_SECONDS=900
+            MAX_ACTIVE_JOBS=10
+            MAX_JOB_WORKERS=2
+            ENABLE_API_DOCS=false
 
       - name: Verify deployment
         run: curl --fail --silent --show-error "${{ steps.deploy.outputs.url }}/health"
