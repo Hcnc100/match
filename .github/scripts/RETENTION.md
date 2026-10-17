@@ -36,6 +36,12 @@ ya se hayan destruido ni prueba por sí mismo la funcionalidad de negocio.
 
 ## Activación pendiente
 
+Los cambios exclusivos de CI/retención no disparan un despliegue de aplicación.
+sync-retention.yml valida las pruebas en PR y permite sincronizar manualmente en
+main sin reconstruir imágenes, cambiar tráfico ni conceder IAM. Usar este flujo
+para verificar permisos antes de activar la política nativa. Los despliegues con
+cambios de aplicación y las liberaciones manuales mantienen su comportamiento.
+
 Publicar y revisar estos cambios sin incluir trabajo local ajeno; ejecutar una
 liberación autorizada y comprobar las etiquetas y permisos de CI. Después:
 - activar solo políticas por paquete revisadas que conserven los tags protegidos;

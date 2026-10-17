@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '.github/scripts/**'
+      - '.github/workflows/deploy-cloud-run.yml'
+      - '.github/workflows/rollback-retained.yml'
+      - '.github/workflows/sync-retention.yml'
   workflow_dispatch:
 
 concurrency:

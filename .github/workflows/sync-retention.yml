@@ -1,0 +1,40 @@
+name: Verify image retention without deploying
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - '.github/scripts/**'
+      - '.github/workflows/**'
+permissions:
+  contents: read
+concurrency:
+  group: deploy-cloud-run-production
+  cancel-in-progress: false
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: python3 -B -m unittest discover -s .github/scripts -p 'test_artifact_retention.py'
+  sync:
+    needs: test
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PROJECT_ID: demos-341014
+    steps:
+      - uses: actions/checkout@v5
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: demos-341014
+          workload_identity_provider: projects/71259703343/locations/global/workloadIdentityPools/github-actions/providers/match
+          service_account: github-actions-deployer@demos-341014.iam.gserviceaccount.com
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Capture existing active image
+        run: python3 .github/scripts/artifact_retention.py capture --project "$PROJECT_ID" --region us-central1 --service conciliador-api --state "$RUNNER_TEMP/retention-check.json"
+      - name: Synchronize protection without changing traffic
+        run: python3 .github/scripts/artifact_retention.py sync --project "$PROJECT_ID" --region us-central1 --service conciliador-api --state "$RUNNER_TEMP/retention-check.json"
