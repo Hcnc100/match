@@ -29,6 +29,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Test image retention safeguards
+        run: python3 -B -m unittest discover -s .github/scripts -p 'test_artifact_retention.py'
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
         with:
@@ -52,6 +55,9 @@ jobs:
             .
           docker push "${IMAGE_URI}:${GITHUB_SHA}"
           docker push "${IMAGE_URI}:latest"
+
+      - name: Capture active image before deployment
+        run: python3 .github/scripts/artifact_retention.py capture --project "$PROJECT_ID" --region "$REGION" --service "$CLOUD_RUN_SERVICE" --state "$RUNNER_TEMP/retention.json"
 
       - name: Deploy to Cloud Run
         id: deploy
@@ -79,3 +85,6 @@ jobs:
 
       - name: Verify deployment
         run: curl --fail --silent --show-error "https://api.conciliacion.ricardopajarocoatl.com/health"
+
+      - name: Protect active and previous image
+        run: python3 .github/scripts/artifact_retention.py sync --project "$PROJECT_ID" --region "$REGION" --service "$CLOUD_RUN_SERVICE" --state "$RUNNER_TEMP/retention.json"

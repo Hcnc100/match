@@ -1,0 +1,32 @@
+name: Roll back to protected historical image
+on:
+  workflow_dispatch:
+    inputs:
+      revision:
+        description: Existing ready revision of the protected previous image
+        required: true
+        type: string
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: deploy-cloud-run-production
+  cancel-in-progress: false
+jobs:
+  rollback:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PROJECT_ID: demos-341014
+      REVISION: ${{ inputs.revision }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: google-github-actions/auth@v3
+        with:
+          project_id: demos-341014
+          workload_identity_provider: projects/71259703343/locations/global/workloadIdentityPools/github-actions/providers/match
+          service_account: github-actions-deployer@demos-341014.iam.gserviceaccount.com
+      - uses: google-github-actions/setup-gcloud@v3
+      - name: Roll back and rotate protected images
+        run: python3 .github/scripts/artifact_retention.py rollback --project "$PROJECT_ID" --region us-central1 --service conciliador-api --revision "$REVISION" --state "$RUNNER_TEMP/retention-rollback.json"
