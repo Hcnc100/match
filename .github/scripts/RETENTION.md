@@ -6,6 +6,12 @@ antes de cambiar las políticas de Artifact Registry de simulación a borrado.
 
 ## Flujo
 
+El sincronizador verifica permisos existentes tags.create/tags.update sin
+concederlos. Las etiquetas coincidentes son no-op; las existentes se actualizan
+con PATCH, sin delete. Las protecciones obsoletas se redirigen a la imagen activa
+para dejar de fijar versiones antiguas sin exigir permiso tags.delete. Puede haber
+varias etiquetas de metadatos en el mismo digest, no versiones adicionales.
+
 1. El workflow captura el digest que recibe el 100% del tráfico antes del deploy.
 2. Despliega usando el procedimiento existente.
 3. Después de la validación existente, el sincronizador comprueba Ready=True,
