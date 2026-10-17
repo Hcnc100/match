@@ -57,11 +57,30 @@ class RetentionTests(unittest.TestCase):
             with patch.object(r, "current", return_value=PACKAGE + "@" + B), \
                  patch.object(r, "cloud", return_value=images), \
                  patch.object(r, "Registry", return_value=registry), \
-                 patch.object(r, "mutate", side_effect=lambda *a: calls.append(a)):
+                 patch.object(registry, "check_permissions"), \
+                 patch.object(registry, "set_tag", side_effect=lambda *a: calls.append(a)):
                 r.sync("demo", "us-central1", "app", state)
-        self.assertEqual([x[3] for x in calls], ["add", "add", "delete"])
-        self.assertTrue(all(x[:3] == ("artifacts", "docker", "tags") for x in calls))
-        self.assertTrue(any(x[-1] == PACKAGE + ":cost-retain-previous" for x in calls[:2]))
+        self.assertEqual(len(calls), 3)
+        self.assertIn(("cost-retain-active", B, A), calls[:2])
+        self.assertIn(("cost-retain-previous", A, C), calls[:2])
+        self.assertEqual(calls[-1], ("cost-retain-dependency-old", B, C))
+
+    def test_matching_tag_is_noop_without_delete_permission(self):
+        registry = object.__new__(r.Registry)
+        with patch.object(r.urllib.request, "urlopen") as urlopen:
+            registry.set_tag("cost-retain-active", A, A)
+            urlopen.assert_not_called()
+
+    def test_existing_tag_uses_patch_not_delete(self):
+        registry = object.__new__(r.Registry)
+        registry.package, registry.token = PACKAGE, "unit-test-token"
+        with patch.object(r.urllib.request, "urlopen") as urlopen, \
+             patch.object(r.json, "load", return_value={}):
+            registry.set_tag("cost-retain-active", B, A)
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.get_method(), "PATCH")
+        self.assertTrue(request.full_url.endswith("?updateMask=version"))
+        self.assertTrue(json.loads(request.data)["version"].endswith(B))
 
     def test_tagged_other_revision_blocks_capture(self):
         svc = {"status": {"traffic": [

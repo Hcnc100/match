@@ -6,6 +6,7 @@ import json
 import pathlib
 import subprocess
 import urllib.request
+import urllib.parse
 
 
 PREFIX = "cost-retain-"
@@ -87,6 +88,46 @@ class Registry:
                 self.cache[digest] = json.load(response)
         return self.cache[digest]
 
+    def check_permissions(self):
+        host, project, repo, _ = self.package.split("/", 3)
+        location = host.removesuffix("-docker.pkg.dev")
+        resource = f"projects/{project}/locations/{location}/repositories/{repo}"
+        required = {"artifactregistry.tags.create", "artifactregistry.tags.update"}
+        req = urllib.request.Request(
+            f"https://artifactregistry.googleapis.com/v1/{resource}:testIamPermissions",
+            data=json.dumps({"permissions": sorted(required)}).encode(), method="POST",
+            headers={"Authorization": f"Bearer {self.token}",
+                     "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=30) as response:
+            granted = set(json.load(response).get("permissions", []))
+        if not required.issubset(granted):
+            raise PermissionError("CI lacks tag create/update; no IAM changes attempted")
+
+    def set_tag(self, tag, digest, current=None):
+        if current == digest:
+            return
+        host, project, repo, package = self.package.split("/", 3)
+        location = host.removesuffix("-docker.pkg.dev")
+        resource = (f"projects/{project}/locations/{location}/repositories/{repo}"
+                    f"/packages/{urllib.parse.quote(package, safe='')}")
+        body = {"version": f"{resource}/versions/{digest}"}
+        if current is None:
+            url = f"https://artifactregistry.googleapis.com/v1/{resource}/tags?tagId={tag}"
+            method = "POST"
+        else:
+            body["name"] = f"{resource}/tags/{tag}"
+            url = (f"https://artifactregistry.googleapis.com/v1/{resource}"
+                   f"/tags/{tag}?updateMask=version")
+            method = "PATCH"
+        req = urllib.request.Request(
+            url, data=json.dumps(body).encode(), method=method,
+            headers={"Authorization": f"Bearer {self.token}",
+                     "Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=30) as response:
+            json.load(response)
+
     def closure(self, roots, available):
         kept = set()
         def visit(digest):
@@ -125,6 +166,7 @@ def sync(project, region, service, state):
     roots = choose(active, snapshot["digest"],
                    old_previous[0] if old_previous else None, available)
     registry = Registry(package)
+    registry.check_permissions()
     keep = registry.closure(roots, available)
     desired = {PREFIX + "active": roots[0]}
     if len(roots) == 2:
@@ -134,15 +176,18 @@ def sync(project, region, service, state):
     if normalize(current(project, region, service)) != (package, active):
         raise ValueError("Concurrent deploy detected")
     # Protect first. A partial failure leaks storage, never removes live protection.
+    current_tags = {tag: image["version"] for image in images
+                    for tag in image.get("tags", [])}
     for tag, digest in desired.items():
-        mutate("artifacts", "docker", "tags", "add",
-               f"{package}@{digest}", f"{package}:{tag}")
+        registry.set_tag(tag, digest, current_tags.get(tag))
     if normalize(current(project, region, service)) != (package, active):
         raise ValueError("Concurrent deploy detected before tag retirement")
     for image in images:
         for tag in image.get("tags", []):
             if tag.startswith(PREFIX) and tag not in desired:
-                mutate("artifacts", "docker", "tags", "delete", f"{package}:{tag}")
+                # Writer accounts can update tags but cannot delete them. Retarget
+                # obsolete metadata to the active image so it no longer pins history.
+                registry.set_tag(tag, active, image["version"])
     print(f"Protected {len(roots)} application version(s) and "
           f"{len(keep - set(roots))} OCI dependencies for {service}")
 
