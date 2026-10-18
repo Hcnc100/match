@@ -15,6 +15,7 @@ on:
 concurrency:
   group: deploy-cloud-run-production
   cancel-in-progress: false
+  queue: max
 
 permissions:
   contents: read

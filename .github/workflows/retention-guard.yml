@@ -13,6 +13,7 @@ permissions:
 concurrency:
   group: deploy-cloud-run-production
   cancel-in-progress: false
+  queue: max
 jobs:
   test:
     runs-on: ubuntu-latest

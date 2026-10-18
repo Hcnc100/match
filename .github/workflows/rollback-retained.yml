@@ -12,6 +12,7 @@ permissions:
 concurrency:
   group: deploy-cloud-run-production
   cancel-in-progress: false
+  queue: max
 jobs:
   rollback:
     if: github.ref == 'refs/heads/main'
