@@ -4,6 +4,7 @@ No image deletion or IAM changes. Native cleanup must remain disabled until adop
 import argparse
 import json
 import pathlib
+import shutil
 import subprocess
 import urllib.request
 import urllib.parse
@@ -14,14 +15,14 @@ PREFIX = "cost-retain-"
 
 def cloud(*args):
     result = subprocess.run(
-        ["gcloud", *args, "--format=json", "--quiet"],
+        [shutil.which("gcloud") or "gcloud", *args, "--format=json", "--quiet"],
         check=True, capture_output=True, text=True,
     )
     return json.loads(result.stdout or "null")
 
 
 def mutate(*args):
-    subprocess.run(["gcloud", *args, "--quiet"], check=True,
+    subprocess.run([shutil.which("gcloud") or "gcloud", *args, "--quiet"], check=True,
                    stdout=subprocess.DEVNULL)
 
 
@@ -68,7 +69,7 @@ class Registry:
     def __init__(self, package):
         self.package = package
         self.token = subprocess.run(
-            ["gcloud", "auth", "print-access-token", "--quiet"],
+            [shutil.which("gcloud") or "gcloud", "auth", "print-access-token", "--quiet"],
             check=True, capture_output=True, text=True,
         ).stdout.strip()
         self.cache = {}
