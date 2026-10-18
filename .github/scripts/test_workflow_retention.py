@@ -44,5 +44,18 @@ class WorkflowRetentionTests(unittest.TestCase):
         self.assertNotIn("secrets versions destroy", self.audit)
 
 
+class QueueRetentionTests(unittest.TestCase):
+    def test_all_shared_workflows_preserve_pending_and_running_operations(self):
+        workflows = pathlib.Path(__file__).resolve().parents[1] / "workflows"
+        groups = set()
+        for name in ["deploy-cloud-run.yml","retention-guard.yml","rollback-retained.yml","sync-retention.yml"]:
+            text = (workflows / name).read_text(encoding="utf-8")
+            block = text.split("concurrency:\n", 1)[1].split("\njobs:", 1)[0]
+            self.assertIn("cancel-in-progress: false", block, name)
+            self.assertIn("queue: max", block, name)
+            groups.add(next(line.strip() for line in block.splitlines() if line.strip().startswith("group:")))
+        self.assertEqual(len(groups), 1)
+
+
 if __name__ == "__main__":
     unittest.main()
