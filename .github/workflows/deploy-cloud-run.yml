@@ -9,6 +9,7 @@ on:
       - '.github/workflows/deploy-cloud-run.yml'
       - '.github/workflows/rollback-retained.yml'
       - '.github/workflows/sync-retention.yml'
+      - '.github/workflows/retention-guard.yml'
   workflow_dispatch:
 
 concurrency:
@@ -35,7 +36,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Test image retention safeguards
-        run: python3 -B -m unittest discover -s .github/scripts -p 'test_artifact_retention.py'
+        run: python3 -B -m unittest discover -s .github/scripts -p 'test_*retention*.py'
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3
@@ -49,6 +50,8 @@ jobs:
 
       - name: Authenticate Docker to Artifact Registry
         run: gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+      - name: Gate deployment on native image retention
+        run: python3 .github/scripts/retention_guard.py --project demos-341014 --service conciliador-api
 
       - name: Build and push container image
         env:
@@ -93,3 +96,5 @@ jobs:
 
       - name: Protect active and previous image
         run: python3 .github/scripts/artifact_retention.py sync --project "$PROJECT_ID" --region "$REGION" --service "$CLOUD_RUN_SERVICE" --state "$RUNNER_TEMP/retention.json"
+      - name: Verify retention after successful release
+        run: python3 .github/scripts/retention_guard.py --project demos-341014 --service conciliador-api
